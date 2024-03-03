@@ -3,22 +3,29 @@ module MusixMatch
     class AuthenticationFailedException < Exception; end
     class APILimitReachedException < Exception; end
     class APIKeyNotSpecifiedException < Exception; end
-    
+
     class Base
       API_URL = 'http://api.musixmatch.com/ws/1.1'
-    
+
       def self.api_key=(value)
-        @@api_key = value        
+        @@api_key = value
       end
-    
+
       def self.api_key
         class_variable_defined?("@@api_key") ? @@api_key : nil
       end
-    
+
       def self.url_for(method, params={})
-        URI.escape("#{API_URL}/#{url_path_for(method, params)}")
+        if URI.respond_to?(:escape)
+          return URI.escape("#{API_URL}/#{url_path_for(method, params)}")
+        elsif defined? URI::Parser
+          parser = URI::Parser.new
+          return parser.escape("#{API_URL}/#{url_path_for(method, params)}")
+        else
+          return "#{API_URL}/#{url_path_for(method, params)}"
+        end
       end
-      
+
       def self.url_path_for(method, params={})
         params.delete('format')
         params.delete('apikey')
@@ -42,14 +49,14 @@ module MusixMatch
         end
         parsed_response
       end
-      
+
       def self.perform_get_request(url)
         HTTParty.get(url)
       end
-    
-      def api_key    
+
+      def api_key
         self.class.api_key
-      end        
+      end
 
       def get(method, params={})
         self.class.get(method, params)
